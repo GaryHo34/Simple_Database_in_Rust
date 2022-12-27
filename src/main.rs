@@ -1,4 +1,38 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    process::exit,
+};
+
+enum StatementType {
+    Insert,
+    Select,
+}
+
+struct Statement {
+    state: StatementType,
+}
+
+impl Statement {
+    fn new(buffer: &String) -> Result<Statement, ()> {
+        if buffer == "INSERT" {
+            return Ok(Statement {
+                state: StatementType::Insert,
+            });
+        } else if buffer == "SELECT" {
+            return Ok(Statement {
+                state: StatementType::Select,
+            });
+        }
+        Err(())
+    }
+
+    fn execute(&self) {
+        match self.state {
+            StatementType::Insert => println!("This is where we would do an insert."),
+            StatementType::Select => println!("This is where we would do a select."),
+        }
+    }
+}
 
 fn main() {
     let mut buffer = String::new();
@@ -8,11 +42,26 @@ fn main() {
         buffer.clear();
         print_prompt();
         read_input(&mut buffer);
-        if buffer == ".exit" {
-            return;
-        } else {
-            println!("Unrecognized command {buffer}.")
+
+        // We dont need MetaCommandResult, use built-in result to do this
+        if buffer.as_bytes()[0] as char == '.' {
+            match do_meta_command(&buffer) {
+                Ok(()) => println!("Success!"),
+                Err(()) => println!("Unrecognized Command!"),
+            }
+            continue;
         }
+
+        let statement = match Statement::new(&buffer) {
+            Ok(val) => val,
+            // If err just to a new loop
+            Err(()) => {
+                println!("Unrecognized Command!");
+                continue;
+            }
+        };
+
+        statement.execute();
     }
 }
 
@@ -31,4 +80,14 @@ fn read_input(buffer: &mut String) {
     }
     // to remove the last newline char
     buffer.pop();
+}
+
+fn do_meta_command(buffer: &String) -> Result<(), ()> {
+    if buffer == ".exit" {
+        exit(0);
+    } else if buffer == ".ex" {
+        // do something
+        return Ok(());
+    }
+    Err(())
 }
